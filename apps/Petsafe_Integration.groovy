@@ -264,7 +264,6 @@ def apiGetTokens() {
     if (!(petsafeCode =~ /\d{3}-\d{3}/))
         code = petsafeCode[0..2] + "-" + petsafeCode[3..5]
 
-        log.debug code
        def params = [
 		uri: "${apiUserUrl}tokens",
 		contentType: "application/json",
