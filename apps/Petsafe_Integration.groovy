@@ -1,7 +1,7 @@
 /**
  *  Petsafe Integration
  *
- *  Copyright 2019 Dominick Meglio
+ *  Copyright 2020 Dominick Meglio
  *
  */
 
@@ -145,7 +145,6 @@ def refreshDevices() {
             if (feeder.is_batteries_installed) {
                 if (!feeder.is_adapter_installed)
                     childFeeder.sendEvent(name: "powerSource", value: "battery")
-				log.debug feeder
                 
                 def voltage = feeder.battery_voltage.toInteger()
                 if (voltage >= 100) {
