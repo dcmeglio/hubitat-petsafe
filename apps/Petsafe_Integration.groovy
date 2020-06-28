@@ -46,7 +46,7 @@ def prefMain() {
 def prefAccount() {
 	return dynamicPage(name: "prefAccount", title: "Connect to Petsafe", nextPage:"prefCode", uninstall:false, install: false) {
 		section {
-			input "petsafeEmail", "email", title: "Petsafe Email", description: "Petsafe Email"
+			input "petsafeEmail", "email", title: "Petsafe Email", description: "Petsafe Email", required: true
 		}
     }
 }
@@ -56,7 +56,7 @@ def prefCode() {
     return dynamicPage(name :"prefCode", title: "Code", nextPage: "prefDevices", uninstall: false, install: false) {
 		section {
            paragraph "In a minute you should receive an email with a 6 digit code. Enter the code below including the hyphen."
-           input "petsafeCode", "string", title: "PIN code", description: "Petsafe PIN code"
+           input "petsafeCode", "string", title: "PIN code", description: "Petsafe PIN code", required: true
 		}
 	}
 }
@@ -71,7 +71,7 @@ def prefDevices() {
     }
     return dynamicPage(name :"prefDevices", title: "Devices", nextPage: "prefMessages", uninstall: false, install: false) {
 		section {
-           input "smartfeeders", "enum", title: "Smart Feeders", options: state.feeders, multiple: true
+           input "smartfeeders", "enum", title: "Smart Feeders", options: state.feeders, multiple: true, required: true
 		}
 	} 
 }
@@ -145,6 +145,7 @@ def refreshDevices() {
             if (feeder.is_batteries_installed) {
                 if (!feeder.is_adapter_installed)
                     childFeeder.sendEvent(name: "powerSource", value: "battery")
+				log.debug feeder
                 
                 def voltage = feeder.battery_voltage.toInteger()
                 if (voltage >= 100) {
@@ -274,14 +275,20 @@ def apiGetTokens() {
         ]
 	] 
     def result = null
-    
-    httpPost(params) { resp ->
-        result = resp.data
-        state.identityId = result.identityId
-        state.accessToken = result.accessToken
-        state.refreshToken = result.refreshToken
-        state.deprecatedToken = result.deprecatedToken
-        app.removeSetting("petsafeCode")
+    try
+    {
+        httpPost(params) { resp ->
+            result = resp.data
+            state.identityId = result.identityId
+            state.accessToken = result.accessToken
+            state.refreshToken = result.refreshToken
+            state.deprecatedToken = result.deprecatedToken
+            app.removeSetting("petsafeCode")
+        }
+    }
+    catch (e) {
+        log.error e
+        return null
     }
     return result 
 }

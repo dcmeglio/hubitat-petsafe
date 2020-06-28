@@ -1,25 +1,25 @@
 {
-	"packageName": "Petnet SmartFeeder Integration",
+	"packageName": "Petsafe SmartFeeder Integration",
 	"minimumHEVersion": "2.1.9",
 	"author": "Dominick Meglio",
-	"version": "1.0.1",
-	"dateReleased": "2020-04-22",
-	"documentationLink": "https://github.com/dcmeglio/hubitat-petnet/blob/master/README.md",
+	"version": "1.0.0",
+	"dateReleased": "2020-06-28",
+	"documentationLink": "https://github.com/dcmeglio/hubitat-petsafe/blob/master/README.md",
 	"apps" : [
 		{
-			"id" : "debf61ca-cc81-4549-ad56-07ad45fb743d",
-			"name": "Petnet Integration",
-			"namespace": "dcm.petnet",
-			"location": "https://raw.githubusercontent.com/dcmeglio/hubitat-petnet/master/apps/Petnet_Integration.groovy",
+			"id" : "b74022f6-9394-42a7-8ea1-15f38e6ffd28",
+			"name": "Petsafe Integration",
+			"namespace": "dcm.petsafe",
+			"location": "https://raw.githubusercontent.com/dcmeglio/hubitat-petsafe/master/apps/Petsafe_Integration.groovy",
 			"required": true
 		}
 	],
 	"drivers": [
 		{
-			"id" : "a31e83e2-96d5-4869-936d-3e158fd74f5f",
-			"name": "Petnet Feeder",
-			"namespace": "petnet",
-			"location": "https://raw.githubusercontent.com/dcmeglio/hubitat-petnet/master/drivers/Petnet_Feeder.groovy",
+			"id" : "79d68587-44c7-4a18-a3b8-9c8f15f984ca",
+			"name": "Petsafe Feeder",
+			"namespace": "dcm.petsafe",
+			"location": "https://raw.githubusercontent.com/dcmeglio/hubitat-petsafe/master/drivers/PetSafe_Feeder.groovy",
 			"required": true
 		}
 	]
