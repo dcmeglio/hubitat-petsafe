@@ -156,20 +156,6 @@ def refreshDevices() {
                 }
             }
 
-            if (feeder.is_food_low == 0) {
-                childFeeder.sendEvent(name: "hopperStatus", value: "full")
-                childFeeder.sendEvent(name: "consumableStatus", value: "good")
-            }
-            else if (feeder.is_food_low == 1) {
-                childFeeder.sendEvent(name: "hopperStatus", value: "low")
-                childFeeder.sendEvent(name: "consumableStatus", value: "replace")
-                notifyFoodLow(childFeeder)
-            }
-            else if (feeder.is_food_low == 2) {
-                childFeeder.sendEvent(name: "hopperStatus", value: "empty")
-                childFeeder.sendEvent(name: "consumableStatus", value: "missing")
-                notifyFoodEmpty(childFeeder)
-            }
             def recentFeedings = apiGetRecentFeedings(feeder.thing_name)
             for (feeding in recentFeedings) {
                 def msgTime = Date.parse("yyyy-MM-dd HH:mm:ss", feeding.created_at, TimeZone.getTimeZone('UTC'))
@@ -185,8 +171,18 @@ def refreshDevices() {
                             notifyFeeding(childFeeder)
                             break
                         case "FOOD_GOOD":
+                            childFeeder.sendEvent(name: "hopperStatus", value: "full")
+                            childFeeder.sendEvent(name: "consumableStatus", value: "good")
+                            break
                         case "FOOD_LOW":
-                        case "FOOD_EMPTY":                          
+                            childFeeder.sendEvent(name: "hopperStatus", value: "low")
+                            childFeeder.sendEvent(name: "consumableStatus", value: "replace")
+                            notifyFoodLow(childFeeder)
+                            break
+                        case "FOOD_EMPTY":
+                            childFeeder.sendEvent(name: "hopperStatus", value: "empty")
+                            childFeeder.sendEvent(name: "consumableStatus", value: "missing")
+                            notifyFoodEmpty(childFeeder)                        
                             break
                         case "WILL_MESSAGE":
                             log.info "WILL_MESSAGE received, unsure what this is ${feeding}"

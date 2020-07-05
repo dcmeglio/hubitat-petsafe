@@ -2,8 +2,9 @@
 	"packageName": "Petsafe SmartFeeder Integration",
 	"minimumHEVersion": "2.1.9",
 	"author": "Dominick Meglio",
-	"version": "1.0.0",
-	"dateReleased": "2020-06-28",
+	"version": "1.0.1",
+	"dateReleased": "2020-07-05",
+	"releaseNotes": "Fixed a bug that could generate duplicate notifications for low and empty food",
 	"documentationLink": "https://github.com/dcmeglio/hubitat-petsafe/blob/master/README.md",
 	"communityLink": "https://community.hubitat.com/t/release-petsafe-smart-feeder-integration/44268",
 	"apps" : [
