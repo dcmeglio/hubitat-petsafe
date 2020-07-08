@@ -195,7 +195,7 @@ def refreshDevices() {
     }
 }
 
-def handleFeed(device, feedAmount) {
+def handleFeed(device, feedAmount, slowFeed) {
     def feeder = device.deviceNetworkId.replace("petsafe:","")
     def params = [
 		uri: "${apiUrl}feeders/${feeder}/meals",
@@ -205,7 +205,8 @@ def handleFeed(device, feedAmount) {
             "token": state.deprecatedToken
         ],
 		body: [
-            "amount": feedAmount
+            "amount": feedAmount,
+            "slow_feed": slowFeed ?: false
         ]
 	] 
     def result = null
