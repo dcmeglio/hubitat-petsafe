@@ -13,6 +13,10 @@ metadata {
         capability "Consumable"
 
         attribute "hopperStatus", "enum"
+        attribute "slow_feed", "bool"
+        attribute "child_lock", "bool"
+        attribute "schedule_enabled", "bool"
+        attribute "feeding_schedule", "JSON_OBJECT"
     }
 }
 

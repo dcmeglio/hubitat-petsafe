@@ -151,10 +151,17 @@ def refreshDevices() {
                     if (voltage > 29100)
                         childFeeder.sendEvent(name: "battery", value: 100)
                     else {
-                        childFeeder.sendEvent(name: "battery", value: (int)((100 * (voltage - 26000))/(29100-2600)))
+                        childFeeder.sendEvent(name: "battery", value: (int)(((voltage - 26000)/(29100-26000))*100))
                     }
                 }
             }
+
+            childFeeder.sendEvent(name: "slow_feed", value: feeder.settings.slow_feed)
+            childFeeder.sendEvent(name: "child_lock", value: feeder.settings.child_lock)
+            childFeeder.sendEvent(name: "schedule_enabled", value: !feeder.settings.paused)
+            def feedingSchedule = []
+            feeder.schedules.each { feedingSchedule << [ time: it.time, amount: it.amount/8]}
+            childFeeder.sendEvent(name: "feeding_schedule", value: feedingSchedule)
 
             def recentFeedings = apiGetRecentFeedings(feeder.thing_name)
             for (feeding in recentFeedings) {
