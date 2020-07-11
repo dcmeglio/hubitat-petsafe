@@ -17,6 +17,8 @@ metadata {
         attribute "child_lock", "bool"
         attribute "schedule_enabled", "bool"
         attribute "feeding_schedule", "JSON_OBJECT"
+
+        command setSchedule "JSON_OBJECT"
     }
 }
 
@@ -30,4 +32,8 @@ def installed() {
 
 def push() {
     parent.handleFeed(device, feedAmount, slowFeed)
+}
+
+def setSchedule(schedule) {
+    parent.handleSchedule(device, schedule)
 }

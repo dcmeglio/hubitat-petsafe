@@ -2,9 +2,9 @@
 	"packageName": "Petsafe SmartFeeder Integration",
 	"minimumHEVersion": "2.1.9",
 	"author": "Dominick Meglio",
-	"version": "1.1.0",
-	"dateReleased": "2020-07-07",
-	"releaseNotes": "Added support for the slow feed setting for manual feeds. Fixed a bug with battery level. Added attributes for slow_feed, child_lock, schedule_enabled, and feeding_schedule",
+	"version": "1.2.0",
+	"dateReleased": "2020-07-09",
+	"releaseNotes": "Added the ability to manage the schedule.",
 	"documentationLink": "https://github.com/dcmeglio/hubitat-petsafe/blob/master/README.md",
 	"communityLink": "https://community.hubitat.com/t/release-petsafe-smart-feeder-integration/44268",
 	"apps" : [

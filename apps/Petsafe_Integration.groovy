@@ -6,6 +6,7 @@
  */
 
 import groovy.transform.Field
+import groovy.json.JsonSlurper
 
 definition(
     name: "Petsafe Integration",
@@ -220,6 +221,90 @@ def handleFeed(device, feedAmount, slowFeed) {
 
     httpPost(params) { resp ->
         result = resp.data
+    }
+    return result
+}
+
+//[{time=6:30, amount=0.375}, {time=18:00, amount=0.375}]
+def handleSchedule(device, schedule) {
+    try
+    {
+        def scheduleJson =  new JsonSlurper().parseText(schedule) 
+        scheduleJson.each {
+            def t = timeToday(it.time)
+            it.time = t.hours + ":" + t.minutes
+            def cups = it.amount*8
+            log.debug cups
+            if (it.amount < 0.125 || it.amount > 1 || [1,2,3,4,5,6,7,8].find {v -> v == cups} == null) {
+                log.error "Invalid schedule specified"
+                return
+            }
+        }
+    }
+    catch (e) {
+        log.error "Invalid schedule specified"
+        return
+    }
+    
+    def feeder = device.deviceNetworkId.replace("petsafe:","")
+    def params = [
+		uri: "${apiUrl}feeders/${feeder}/schedules",
+		contentType: "application/json",
+        requestContentType: "application/json",
+        headers: [
+            "token": state.deprecatedToken
+        ],
+		body: [
+            "amount": feedAmount,
+            "slow_feed": slowFeed ?: false
+        ]
+	] 
+    def result = null
+
+    httpGet(params) { resp ->
+        for (currentFeeding in resp.data) {
+            def newItem = scheduleJson.find { it.time == currentFeeding.time }
+            if (newItem == null) {
+                asynchttpDelete(null,[
+                    uri:"${apiUrl}feeders/${feeder}/schedules/${currentFeeding.id}",
+                    contentType: "application/json",
+                    requestContentType: "application/json",
+                    headers: [
+                        "token": state.deprecatedToken
+                    ]
+                ])
+            }
+            else if (newItem != null && newItem.amount != currentFeeding.amount/8) {
+                asynchttpPut(null,[
+                    uri:"${apiUrl}feeders/${feeder}/schedules/${currentFeeding.id}",
+                    contentType: "application/json",
+                    requestContentType: "application/json",
+                    headers: [
+                        "token": state.deprecatedToken
+                    ],
+                    body: [
+                        amount: newItem.amount*8,
+                        time: newItem.time
+                    ]
+                ])
+            }
+        }
+        for (newItem in scheduleJson) {
+            if (!resp.data.find { it.time == newItem.time}) {              
+                asynchttpPost(null,[
+                    uri:"${apiUrl}feeders/${feeder}/schedules",
+                    contentType: "application/json",
+                    requestContentType: "application/json",
+                    headers: [
+                        "token": state.deprecatedToken
+                    ],
+                    body: [
+                        amount: newItem.amount*8,
+                        time: newItem.time
+                    ]
+                ])
+            }
+        }
     }
     return result
 }
