@@ -18,7 +18,7 @@ metadata {
         attribute "schedule_enabled", "bool"
         attribute "feeding_schedule", "JSON_OBJECT"
 
-        command setSchedule "JSON_OBJECT"
+        command "setSchedule", ["JSON_OBJECT"]
     }
 }
 
