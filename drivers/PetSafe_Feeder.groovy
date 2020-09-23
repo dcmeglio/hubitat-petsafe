@@ -18,6 +18,8 @@ metadata {
         attribute "schedule_enabled", "bool"
         attribute "feeding_schedule", "JSON_OBJECT"
 
+        attribute "lastFeedingTime", "number"
+
         command "setSchedule", ["JSON_OBJECT"]
     }
 }

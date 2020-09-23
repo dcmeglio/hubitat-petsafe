@@ -176,6 +176,7 @@ def refreshDevices() {
                             notifyError(childFeeder)
                             break
                         case "FEED_DONE":
+                            childFeeder.sendEvent(name: "lastFeedingTime", value: msgTime.getTime())
                             notifyFeeding(childFeeder)
                             break
                         case "FOOD_GOOD":
@@ -353,7 +354,7 @@ def apiGetTokens() {
     if (!(petsafeCode =~ /\d{3}-\d{3}/))
         code = petsafeCode[0..2] + "-" + petsafeCode[3..5]
 
-       def params = [
+    def params = [
 		uri: "${apiUserUrl}tokens",
 		contentType: "application/json",
         requestContentType: "application/json",
