@@ -166,7 +166,7 @@ def refreshDevices() {
 
 			def recentFeedings = apiGetRecentFeedings(feeder.thing_name)
 			def epochNow = (int)(now()/1000)
-			if (state.lastMessageCheck.toString().contains("T"))
+			if (state.lastMessageCheck.toString().contains("T") || state.lastMessageCheck > 9999999999)
 				state.lastMessageCheck = epochNow
 			for (feeding in recentFeedings) {
 				def msgEpoch = feeding.payload?.time ?: (int)(Date.parse("yyyy-MM-dd HH:mm:ss", feeding.created_at, TimeZone.getTimeZone('UTC')).getTime()/1000)
