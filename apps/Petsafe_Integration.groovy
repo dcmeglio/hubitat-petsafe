@@ -169,8 +169,8 @@ def refreshDevices() {
 			if (state.lastMessageCheck.toString().contains("T"))
 				state.lastMessageCheck = epochNow
 			for (feeding in recentFeedings) {
-				def msgEpoch = feeding.payload?.time ?: Date.parse("yyyy-MM-dd HH:mm:ss", feeding.created_at, TimeZone.getTimeZone('UTC')).getTime()
-				logDebug "Feeding Message: ${feeding.message_type} ${msgEpoch} ${epochNow}"
+				def msgEpoch = feeding.payload?.time ?: (int)(Date.parse("yyyy-MM-dd HH:mm:ss", feeding.created_at, TimeZone.getTimeZone('UTC')).getTime()/1000)
+				logDebug "Feeding Message: ${feeding.message_type} ${msgEpoch} ${state.lastMessageCheck}"
 
 				if (msgEpoch > state.lastMessageCheck) {
 					switch (feeding.message_type) {
@@ -198,10 +198,9 @@ def refreshDevices() {
 							notifyFoodEmpty(childFeeder)
 							break
 						case "WILL_MESSAGE":
-							log.info "WILL_MESSAGE received, unsure what this is ${feeding}"
 							break
 					}
-					state.lastMessageCheck = epochNow
+					state.lastMessageCheck = msgEpoch
 				}
 			}
 		}
