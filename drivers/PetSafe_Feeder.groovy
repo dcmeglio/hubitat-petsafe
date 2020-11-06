@@ -36,6 +36,10 @@ def push() {
     parent.handleFeed(device, feedAmount, slowFeed)
 }
 
+def push(buttonNumber) {
+    push()
+}
+
 def setSchedule(schedule) {
     parent.handleSchedule(device, schedule)
 }
