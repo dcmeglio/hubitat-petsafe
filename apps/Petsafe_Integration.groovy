@@ -231,24 +231,25 @@ def handleFeed(device, feedAmount, slowFeed) {
 
 //[{time=6:30, amount=0.375}, {time=18:00, amount=0.375}]
 def handleSchedule(device, schedule) {
+	def scheduleJson = {}
 	try
 	{
-		def scheduleJson =  new JsonSlurper().parseText(schedule) 
+		scheduleJson =  new JsonSlurper().parseText(schedule)
 		scheduleJson.each {
-			def t = timeToday(it.time)
-			it.time = t.hours + ":" + t.minutes
 			def cups = it.amount*8
-			
-			if (it.amount < 0.125 || it.amount > 1 || [1,2,3,4,5,6,7,8].find {v -> v == cups} == null) {
-				log.error "Invalid schedule specified"
-				return
+			// validate range and amount is multiples of 0.125
+			if (it.amount < 0.125 || it.amount > 4 || Math.floor(cups) != cups) {
+				throw new IllegalArgumentException("Invalid amount specified ${it.amount}. " +
+					"Amount (x) must be multiples of 0.125, and be between 0.125 and 4")
 			}
 		}
 	}
 	catch (e) {
-		log.error "Invalid schedule specified"
+		log.error e
 		return
 	}
+
+	log.debug "Full schedule: ${scheduleJson}"
 	
 	def feeder = device.deviceNetworkId.replace("petsafe:","")
 	def params = [
@@ -294,7 +295,8 @@ def handleSchedule(device, schedule) {
 			}
 		}
 		for (newItem in scheduleJson) {
-			if (!resp.data.find { it.time == newItem.time}) {              
+			if (!resp.data.find { it.time == newItem.time}) {
+				log.debug "Scheduling ${newItem.amount} cup at ${newItem.time}"
 				asynchttpPost(null,[
 					uri:"${apiUrl}feeders/${feeder}/schedules",
 					contentType: "application/json",
