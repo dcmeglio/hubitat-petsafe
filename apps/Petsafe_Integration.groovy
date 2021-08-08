@@ -53,7 +53,10 @@ def prefAccount() {
 }
 
 def prefCode() {
-	apiAuthenticate()
+	state.region = apiGetRegion()
+	def authData = apiAuthenticate()
+	state.session = authData?.Session
+	state.username = authData?.ChallengeParameters.USERNAME
 	return dynamicPage(name :"prefCode", title: "Code", nextPage: "prefDevices", uninstall: false, install: false) {
 		section {
 		   paragraph "In a minute you should receive an email with a 6 digit code. Enter the code below including the hyphen."
@@ -99,9 +102,8 @@ def prefMessages() {
 	}
 }
 
-@Field apiUrl = "https://api.ps-smartfeed.cloud.petsafe.net/api/v2/"
-@Field apiUserUrl = "https://users-api.ps-smartfeed.cloud.petsafe.net/users/"
-
+@Field apiUrl = "https://platform.cloud.petsafe.net/"
+@Field apiDirectory = "https://directory.cloud.petsafe.net"
 def installed() {
 	logDebug "Installed with settings: ${settings}"
 	state.lastMessageCheck = new Date()
@@ -152,7 +154,7 @@ def refreshDevices() {
 					if (voltage > 29100)
 						childFeeder.sendEvent(name: "battery", value: 100)
 					else {
-						childFeeder.sendEvent(name: "battery", value: (int)(((voltage - 26000)/(29100-26000))*100))
+						childFeeder.sendEvent(name: "battery", value: (int)(((voltage - 23000)/(29100-23000))*100))
 					}
 				}
 			}
@@ -209,12 +211,13 @@ def refreshDevices() {
 
 def handleFeed(device, feedAmount, slowFeed) {
 	def feeder = device.deviceNetworkId.replace("petsafe:","")
+	apiRefreshAuth()
 	def params = [
-		uri: "${apiUrl}feeders/${feeder}/meals",
+		uri: "${apiUrl}smart-feed/feeders/${feeder}/meals",
 		contentType: "application/json",
 		requestContentType: "application/json",
 		headers: [
-			"token": state.deprecatedToken
+			"Authorization": state.idToken
 		],
 		body: [
 			"amount": feedAmount,
@@ -249,14 +252,14 @@ def handleSchedule(device, schedule) {
 		log.error "Invalid schedule specified"
 		return
 	}
-	
+	apiRefreshAuth()
 	def feeder = device.deviceNetworkId.replace("petsafe:","")
 	def params = [
-		uri: "${apiUrl}feeders/${feeder}/schedules",
+		uri: "${apiUrl}smart-feed/feeders/${feeder}/schedules",
 		contentType: "application/json",
 		requestContentType: "application/json",
 		headers: [
-			"token": state.deprecatedToken
+			"Authorization": state.idToken
 		],
 		body: [
 			"amount": feedAmount,
@@ -270,21 +273,21 @@ def handleSchedule(device, schedule) {
 			def newItem = scheduleJson.find { it.time == currentFeeding.time }
 			if (newItem == null) {
 				asynchttpDelete(null,[
-					uri:"${apiUrl}feeders/${feeder}/schedules/${currentFeeding.id}",
+					uri:"${apiUrl}smart-feed/feeders/${feeder}/schedules/${currentFeeding.id}",
 					contentType: "application/json",
 					requestContentType: "application/json",
 					headers: [
-						"token": state.deprecatedToken
+						"Authorization": state.idToken
 					]
 				])
 			}
 			else if (newItem != null && newItem.amount != currentFeeding.amount/8) {
 				asynchttpPut(null,[
-					uri:"${apiUrl}feeders/${feeder}/schedules/${currentFeeding.id}",
+					uri:"${apiUrl}smart-feed/feeders/${feeder}/schedules/${currentFeeding.id}",
 					contentType: "application/json",
 					requestContentType: "application/json",
 					headers: [
-						"token": state.deprecatedToken
+						"Authorization": state.idToken
 					],
 					body: [
 						amount: newItem.amount*8,
@@ -296,11 +299,11 @@ def handleSchedule(device, schedule) {
 		for (newItem in scheduleJson) {
 			if (!resp.data.find { it.time == newItem.time}) {              
 				asynchttpPost(null,[
-					uri:"${apiUrl}feeders/${feeder}/schedules",
+					uri:"${apiUrl}smart-feed/feeders/${feeder}/schedules",
 					contentType: "application/json",
 					requestContentType: "application/json",
 					headers: [
-						"token": state.deprecatedToken
+						"Authorization": state.idToken
 					],
 					body: [
 						amount: newItem.amount*8,
@@ -333,15 +336,77 @@ def notifyFoodEmpty(dev) {
 		notificationDevices*.deviceNotification(messageHopperEmpty.replace("%device%",dev.displayName))
 }
 
-def apiAuthenticate() {
+def apiGetRegion() {
 	def params = [
-		uri: "${apiUserUrl}",
+		uri: "${apiDirectory}/locale",
+		contentType: "application/json",
+		requestContentType: "application/json"
+	] 
+	def result = null
+
+	httpGet(params) { resp ->
+		result = resp.data?.data?.region
+	}
+	return result	
+}
+
+def apiRefreshAuth() {
+	if (now() < state.expiration-5000)
+		return null
+	def params = [
+		uri: "https://cognito-idp.${state.region}.amazonaws.com/",
 		contentType: "application/json",
 		requestContentType: "application/json",
+		headers: [
+			"X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth",
+			"Content-Type": "application/x-amz-json-1.1",
+			"Accept": "*/*"
+		],
 		body: [
-			"consentVersion": "2019-06-25",
-			"email": petsafeEmail,
-			"language": "en"
+			"AuthFlow": "REFRESH_TOKEN_AUTH",
+			"AuthParameters": [
+				"REFRESH_TOKEN": state.refreshToken
+			],
+			"ClientId": "18hpp04puqmgf5nc6o474lcp2g"
+		]
+	] 
+
+	def result = null
+	try
+	{
+		httpPost(params) { resp ->
+			result = resp.data
+			state.expiration = now()+(result.AuthenticationResult.ExpiresIn*1000)
+			state.accessToken = result.AuthenticationResult.AccessToken
+			if (result.AuthenticationResult.RefreshToken != null)
+				state.refreshToken = result.AuthenticationResult.RefreshToken
+			state.idToken = result.AuthenticationResult.IdToken
+		}
+	}
+	catch (e) {
+		def errResp = e.getResponse()
+		return null
+	}
+	return result 
+}
+
+def apiAuthenticate() {
+	def params = [
+		uri: "https://cognito-idp.${state.region}.amazonaws.com/",
+		contentType: "application/json",
+		requestContentType: "application/json",
+		headers: [
+			"X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth",
+			"Accept-Encoding": "identity",
+			"Content-Type": "application/x-amz-json-1.1"
+		],
+		body: [
+			"AuthFlow": "CUSTOM_AUTH",
+			"AuthParameters": [
+				"USERNAME": petsafeEmail,
+				"AuthFlow": "CUSTOM_CHALLENGE"
+			],
+			"ClientId": "18hpp04puqmgf5nc6o474lcp2g"
 		]
 	] 
 	def result = null
@@ -353,45 +418,54 @@ def apiAuthenticate() {
 }
 
 def apiGetTokens() {
-	def code = petSafeCode
-	if (!(petsafeCode =~ /\d{3}-\d{3}/))
-		code = petsafeCode[0..2] + "-" + petsafeCode[3..5]
 
 	def params = [
-		uri: "${apiUserUrl}tokens",
+		uri: "https://cognito-idp.${state.region}.amazonaws.com/",
 		contentType: "application/json",
 		requestContentType: "application/json",
+		headers: [
+			"X-Amz-Target": "AWSCognitoIdentityProviderService.RespondToAuthChallenge",
+			"Content-Type": "application/x-amz-json-1.1",
+			"Accept": "*/*"
+		],
 		body: [
-			"code": code,
-			"email": petsafeEmail
+			"ClientId": "18hpp04puqmgf5nc6o474lcp2g",
+    		"ChallengeName": "CUSTOM_CHALLENGE",
+			"Session": state.session,
+			"ChallengeResponses": [
+				"ANSWER": petsafeCode,
+				"USERNAME": petsafeEmail
+			]
 		]
 	] 
+
 	def result = null
 	try
 	{
 		httpPost(params) { resp ->
 			result = resp.data
-			state.identityId = result.identityId
-			state.accessToken = result.accessToken
-			state.refreshToken = result.refreshToken
-			state.deprecatedToken = result.deprecatedToken
+			state.expiration = now()+(result.AuthenticationResult.ExpiresIn*1000)
+			state.accessToken = result.AuthenticationResult.AccessToken
+			state.refreshToken = result.AuthenticationResult.RefreshToken
+			state.idToken = result.AuthenticationResult.IdToken
 			app.removeSetting("petsafeCode")
 		}
 	}
 	catch (e) {
-		log.error e
+		def errResp = e.getResponse()
 		return null
 	}
 	return result 
 }
 
 def apiGetFeeders() {
+	apiRefreshAuth()
 	def params = [
-		uri: "${apiUrl}feeders",
+		uri: "${apiUrl}smart-feed/feeders",
 		contentType: "application/json",
 		requestContentType: "application/json",
 		headers: [
-			"token": state.deprecatedToken
+			"Authorization": state.idToken
 		]
 	]
 
@@ -403,12 +477,13 @@ def apiGetFeeders() {
 }
 
 def apiGetRecentFeedings(feeder) {
-		def params = [
-		uri: "${apiUrl}feeders/${feeder}/messages?days=2",
+	apiRefreshAuth()
+	def params = [
+		uri: "${apiUrl}smart-feed/feeders/${feeder}/messages?days=2",
 		contentType: "application/json",
 		requestContentType: "application/json",
 		headers: [
-			"token": state.deprecatedToken
+			"Authorization": state.idToken
 		]
 	]
 
